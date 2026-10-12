@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "staff-mobile",
+    "name": "WheelSync Staff",
     "slug": "staff-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -15,7 +15,9 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.pardz.wheelsyncstaff",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
