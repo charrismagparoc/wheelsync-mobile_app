@@ -9,7 +9,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://wheelsync-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://wheelsync-api-1jyu.onrender.com"
       }
     },
     "production": {
@@ -17,7 +17,7 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://wheelsync-api.onrender.com"
+        "EXPO_PUBLIC_API_URL": "https://wheelsync-api-1jyu.onrender.com"
       }
     }
   }
