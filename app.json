@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "WheelSync Staff",
+    "slug": "staff-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.pardz.wheelsyncstaff",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Allow WheelSync Staff to take photos of vehicle damage during inspections.",
+          "photosPermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "16af508f-9c70-4eee-9d54-b8209174c47a"
+      }
+    },
+    "owner": "charrissyy"
+  }
+}
