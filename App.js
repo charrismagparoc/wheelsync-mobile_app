@@ -21,7 +21,7 @@ function RootNavigator() {
     ...(mode === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
       ...(mode === 'dark' ? DarkTheme.colors : DefaultTheme.colors),
-      background: colors.bgVoid,
+      background: colors.shell[0],
       card: colors.bgSurface,
       text: colors.textPrimary,
       border: colors.border,

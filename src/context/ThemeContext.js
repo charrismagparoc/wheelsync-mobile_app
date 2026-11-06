@@ -1,14 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useColorScheme } from 'react-native'
 import { darkTheme, lightTheme } from '../theme'
 
 const ThemeContext = createContext(null)
 const STORAGE_KEY = 'wheelsync-theme-mode'
 
 export function ThemeProvider({ children }) {
-  const systemScheme = useColorScheme()
-  const [mode, setMode] = useState(systemScheme === 'light' ? 'light' : 'dark')
+  // Dark navy by default, like the admin console; the toggle's choice is saved and wins after that.
+  const [mode, setMode] = useState('dark')
   const [ready, setReady] = useState(false)
 
   useEffect(() => {

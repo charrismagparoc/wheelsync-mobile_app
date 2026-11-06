@@ -6,8 +6,10 @@ import { api } from '../lib/api'
 import { subscribe } from '../lib/realtime'
 import { useAppTheme } from '../context/ThemeContext'
 import { CarFrontIcon } from './BrandLogo'
+import { Fill } from './ui'
 
 // Bottom navigation shared by the Assigned tasks and Notifications screens.
+// The active tab gets the same blue gradient pill as the admin console's sidebar.
 export default function BottomBar({ navigation, active }) {
   const { colors } = useAppTheme()
   const insets = useSafeAreaInsets()
@@ -37,24 +39,28 @@ export default function BottomBar({ navigation, active }) {
     if (active !== 'notifications') navigation.navigate('Notifications')
   }
 
-  const tabColor = (name) => (active === name ? colors.nebula3 : colors.textMuted)
+  const iconColor = (name) => (active === name ? 'white' : colors.textMuted)
+  const labelStyle = (name) => ({ color: active === name ? colors.textPrimary : colors.textMuted, fontSize: 11, fontWeight: '700' })
+  const pill = { width: 60, height: 32, borderRadius: 999, alignItems: 'center', justifyContent: 'center' }
 
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: colors.bgSurface, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 8 }}>
-      <Pressable onPress={openTasks} accessibilityRole="button" accessibilityLabel="Assigned tasks" style={{ flex: 1, alignItems: 'center', gap: 3 }}>
-        <CarFrontIcon size={22} color={tabColor('tasks')} />
-        <Text style={{ color: tabColor('tasks'), fontSize: 11, fontWeight: '700' }}>Assigned tasks</Text>
+    <View style={{ flexDirection: 'row', backgroundColor: colors.bar, borderTopWidth: 1, borderTopColor: colors.border, paddingBottom: Math.max(insets.bottom, 8), paddingTop: 8 }}>
+      <Pressable onPress={openTasks} accessibilityRole="tab" accessibilityState={{ selected: active === 'tasks' }} accessibilityLabel="Assigned tasks" style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+        <Fill active={active === 'tasks'} style={pill}>
+          <CarFrontIcon size={20} color={iconColor('tasks')} />
+        </Fill>
+        <Text style={labelStyle('tasks')}>Assigned tasks</Text>
       </Pressable>
-      <Pressable onPress={openNotifications} accessibilityRole="button" accessibilityLabel={`Notifications, ${unread} unread`} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
-        <View>
-          <Ionicons name={active === 'notifications' ? 'notifications' : 'notifications-outline'} size={22} color={tabColor('notifications')} />
+      <Pressable onPress={openNotifications} accessibilityRole="tab" accessibilityState={{ selected: active === 'notifications' }} accessibilityLabel={`Notifications, ${unread} unread`} style={{ flex: 1, alignItems: 'center', gap: 3 }}>
+        <Fill active={active === 'notifications'} style={pill}>
+          <Ionicons name={active === 'notifications' ? 'notifications' : 'notifications-outline'} size={20} color={iconColor('notifications')} />
           {unread > 0 && (
-            <View style={{ position: 'absolute', top: -4, right: -10, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ position: 'absolute', top: -2, right: 8, minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 4, backgroundColor: colors.danger, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: 'white', fontSize: 10, fontWeight: '800' }}>{unread > 99 ? '99+' : unread}</Text>
             </View>
           )}
-        </View>
-        <Text style={{ color: tabColor('notifications'), fontSize: 11, fontWeight: '700' }}>Notifications</Text>
+        </Fill>
+        <Text style={labelStyle('notifications')}>Notifications</Text>
       </Pressable>
     </View>
   )

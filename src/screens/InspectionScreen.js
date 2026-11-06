@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import {
-  View, Text, TextInput, Pressable, ScrollView, Alert, ActivityIndicator,
+  View, Text, TextInput, Pressable, ScrollView, Alert,
   Modal, KeyboardAvoidingView, Platform, Image, useWindowDimensions,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { api } from '../lib/api'
 import { useAppTheme } from '../context/ThemeContext'
 import VehicleDiagram from '../components/VehicleDiagram'
+import { AppShell, Button, Card as SurfaceCard, Fill, TopBar, inputStyle } from '../components/ui'
 import {
   TOOLS, TOOL_STATUSES, DAMAGE_CODES, FUEL_LEVELS, damageById, zoneById,
 } from '../lib/inspectionData'
@@ -37,12 +38,7 @@ const MAX_PHOTOS = 20
 /* ---------- small building blocks (kept outside the screen so inputs keep focus) ---------- */
 
 function Card({ children }) {
-  const { colors } = useAppTheme()
-  return (
-    <View style={{ backgroundColor: colors.bgSurface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border, gap: 12 }}>
-      {children}
-    </View>
-  )
+  return <SurfaceCard style={{ gap: 12 }}>{children}</SurfaceCard>
 }
 
 function Title({ children, hint }) {
@@ -59,13 +55,10 @@ function Field({ label, style, ...props }) {
   const { colors } = useAppTheme()
   return (
     <View style={{ gap: 6 }}>
-      <Text style={{ color: colors.textMuted, fontSize: 13 }}>{label}</Text>
+      <Text style={{ color: colors.textPrimary, fontSize: 13, fontWeight: '500' }}>{label}</Text>
       <TextInput
         placeholderTextColor={colors.textFaint}
-        style={[
-          { backgroundColor: colors.bgSurface2, color: colors.textPrimary, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 12, borderWidth: 1, borderColor: colors.border },
-          style,
-        ]}
+        style={[inputStyle(colors), style]}
         {...props}
       />
     </View>
@@ -205,16 +198,9 @@ function DamageSheet({ zoneId, marks, onToggle, onClearZone, onClose }) {
 
           <View style={{ flexDirection: 'row', gap: 10 }}>
             {zoneMarks.length > 0 && (
-              <Pressable
-                onPress={() => onClearZone(zoneId)}
-                style={{ flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.danger }}
-              >
-                <Text style={{ color: colors.danger, fontWeight: '700' }}>Clear this part</Text>
-              </Pressable>
+              <Button variant="danger" title="Clear this part" onPress={() => onClearZone(zoneId)} style={{ flex: 1 }} />
             )}
-            <Pressable onPress={onClose} style={{ flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', backgroundColor: colors.nebula1 }}>
-              <Text style={{ color: 'white', fontWeight: '700' }}>Done</Text>
-            </Pressable>
+            <Button title="Done" onPress={onClose} style={{ flex: 1 }} />
           </View>
         </Pressable>
       </Pressable>
@@ -335,31 +321,28 @@ export default function InspectionScreen({ route, navigation }) {
   const showChanges = tab === 'post_rental' && (newDamage > 0 || toolIssues > 0)
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bgVoid }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      {/* Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12 }}>
-        <Pressable onPress={() => navigation.goBack()} style={{ padding: 6 }}>
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </Pressable>
-        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>Vehicle Inspection</Text>
-      </View>
+    <AppShell>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <TopBar
+        onBack={() => navigation.goBack()}
+        title="Vehicle inspection"
+        subtitle={vehicle ? [`${vehicle.make ?? ''} ${vehicle.model ?? ''}`.trim(), vehicle.plate_number].filter(Boolean).join(' · ') : undefined}
+      />
 
       <ScrollView contentContainerStyle={{ padding: 20, gap: 14, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
         {/* PRE / POST tabs */}
-        <View style={{ flexDirection: 'row', backgroundColor: colors.bgSurface2, borderRadius: 14, padding: 4, gap: 4 }}>
+        <View style={{ flexDirection: 'row', backgroundColor: colors.bgSurface, borderWidth: 1, borderColor: colors.border, borderRadius: 14, padding: 4, gap: 4 }}>
           {TABS.map((t) => {
             const selected = tab === t.id
             const count = forms[t.id].marks.length
             return (
-              <Pressable
-                key={t.id}
-                onPress={() => setTab(t.id)}
-                style={{ flex: 1, paddingVertical: 10, borderRadius: 10, alignItems: 'center', backgroundColor: selected ? colors.nebula1 : 'transparent' }}
-              >
-                <Text style={{ color: selected ? 'white' : colors.textPrimary, fontWeight: '800', fontSize: 15 }}>
-                  {t.label}{count > 0 ? `  (${count})` : ''}
-                </Text>
-                <Text style={{ color: selected ? 'white' : colors.textMuted, fontSize: 12 }}>{t.hint}</Text>
+              <Pressable key={t.id} onPress={() => setTab(t.id)} accessibilityRole="tab" accessibilityState={{ selected }} style={{ flex: 1 }}>
+                <Fill active={selected} style={{ paddingVertical: 10, borderRadius: 10, alignItems: 'center' }}>
+                  <Text style={{ color: selected ? 'white' : colors.textPrimary, fontWeight: '800', fontSize: 15 }}>
+                    {t.label}{count > 0 ? `  (${count})` : ''}
+                  </Text>
+                  <Text style={{ color: selected ? 'white' : colors.textMuted, fontSize: 12 }}>{t.hint}</Text>
+                </Fill>
               </Pressable>
             )
           })}
@@ -463,15 +446,13 @@ export default function InspectionScreen({ route, navigation }) {
             <Text style={{ color: colors.textMuted, fontSize: 13 }}>Fuel level</Text>
             <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
               {FUEL_LEVELS.map((lvl) => (
-                <Pressable
-                  key={lvl}
-                  onPress={() => update({ fuel: lvl })}
-                  style={{
-                    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, borderWidth: 1, borderColor: colors.border,
-                    backgroundColor: form.fuel === lvl ? colors.nebula3 : colors.bgSurface2,
-                  }}
-                >
-                  <Text style={{ color: form.fuel === lvl ? 'white' : colors.textPrimary, fontSize: 13, fontWeight: '600' }}>{lvl}</Text>
+                <Pressable key={lvl} onPress={() => update({ fuel: lvl })} accessibilityRole="radio" accessibilityState={{ selected: form.fuel === lvl }}>
+                  <Fill
+                    active={form.fuel === lvl}
+                    style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 999, backgroundColor: form.fuel === lvl ? undefined : colors.bgSurface2 }}
+                  >
+                    <Text style={{ color: form.fuel === lvl ? 'white' : colors.textPrimary, fontSize: 13, fontWeight: '600' }}>{lvl}</Text>
+                  </Fill>
                 </Pressable>
               ))}
             </View>
@@ -514,20 +495,8 @@ export default function InspectionScreen({ route, navigation }) {
 
         {/* Actions */}
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <Pressable
-            onPress={clearAll}
-            disabled={busy}
-            style={{ flex: 1, paddingVertical: 14, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border, backgroundColor: colors.bgSurface2 }}
-          >
-            <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Clear</Text>
-          </Pressable>
-          <Pressable
-            onPress={submit}
-            disabled={busy}
-            style={{ flex: 2, backgroundColor: colors.nebula1, borderRadius: 12, paddingVertical: 14, alignItems: 'center', opacity: busy ? 0.6 : 1 }}
-          >
-            {busy ? <ActivityIndicator color="white" /> : <Text style={{ color: 'white', fontWeight: '700' }}>Save {tabLabel} Inspection</Text>}
-          </Pressable>
+          <Button variant="ghost" title="Clear" onPress={clearAll} disabled={busy} style={{ flex: 1 }} />
+          <Button title={`Save ${tabLabel} inspection`} onPress={submit} busy={busy} style={{ flex: 2 }} />
         </View>
       </ScrollView>
 
@@ -546,5 +515,6 @@ export default function InspectionScreen({ route, navigation }) {
         onClose={() => setActiveZone(null)}
       />
     </KeyboardAvoidingView>
+    </AppShell>
   )
 }

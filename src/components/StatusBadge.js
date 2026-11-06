@@ -1,23 +1,15 @@
-import { View, Text } from 'react-native'
-import { useAppTheme } from '../context/ThemeContext'
+import { Pill } from './ui'
 
-const COLOR_KEY = {
+// Same colours as the admin console's booking badges.
+const TONE = {
   pending: 'warning',
   accepted: 'success',
-  ongoing: 'nebula3',
-  completed: 'nebula2',
+  ongoing: 'info',
+  completed: 'indigo',
   rejected: 'danger',
   cancelled: 'danger',
 }
 
 export default function StatusBadge({ status }) {
-  const { colors } = useAppTheme()
-  const color = colors[COLOR_KEY[status]] ?? colors.textMuted
-  return (
-    <View style={{ backgroundColor: color + '26', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 999 }}>
-      <Text style={{ color, fontSize: 12, fontWeight: '700' }}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </Text>
-    </View>
-  )
+  return <Pill tone={TONE[status]}>{status.charAt(0).toUpperCase() + status.slice(1)}</Pill>
 }

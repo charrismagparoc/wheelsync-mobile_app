@@ -1,14 +1,35 @@
 import { useCallback, useEffect, useState } from 'react'
-import { View, Text, Pressable, ScrollView, Alert } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { View, Text, ScrollView, Alert } from 'react-native'
 import { useFocusEffect } from '@react-navigation/native'
 import { api } from '../lib/api'
 import { subscribe } from '../lib/realtime'
 import { useAuth } from '../context/AuthContext'
 import { useAppTheme } from '../context/ThemeContext'
 import StatusBadge from '../components/StatusBadge'
+import BrandLogo from '../components/BrandLogo'
+import { AppShell, Button, Card, PlateChip, SectionTitle, Stepper, TopBar } from '../components/ui'
 
 const STEPS = [['pre_rental', 'Pre-rental inspection'], ['post_rental', 'Post-rental inspection']]
+
+// An inspection can be saved more than once: show the one still waiting for the admin, else the latest.
+function inspectionOf(job, type) {
+  const submissions = (job.inspections ?? []).filter((item) => item.type === type)
+  return submissions.find((item) => !item.verified_at) ?? submissions[submissions.length - 1]
+}
+
+// Same five steps as the admin console's Inspections page.
+function progressSteps(job) {
+  const inspections = job.inspections ?? []
+  const returned = job.status === 'completed'
+  const verified = inspections.length > 0 && inspections.every((item) => item.verified_at)
+  return [
+    { label: 'Pre-rental check', done: inspections.some((item) => item.type === 'pre_rental') },
+    { label: 'Rented out', done: job.status === 'ongoing' || returned },
+    { label: 'Post-rental check', done: inspections.some((item) => item.type === 'post_rental') },
+    { label: 'Cleaning', done: Boolean(job.cleaning_done_at) },
+    { label: 'Back on fleet', done: returned && verified && Boolean(job.cleaning_done_at) },
+  ]
+}
 
 export default function JobDetailScreen({ route, navigation }) {
   const { profile } = useAuth()
@@ -60,91 +81,77 @@ export default function JobDetailScreen({ route, navigation }) {
   ))
 
   const Row = ({ label, value, color }) => (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: colors.border }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 6 }}>
       <Text style={{ color: colors.textMuted, fontSize: 13 }}>{label}</Text>
       <Text style={{ color: color ?? colors.textPrimary, fontSize: 13, fontWeight: '600', flexShrink: 1, textAlign: 'right' }}>{value}</Text>
     </View>
   )
 
-  const card = { backgroundColor: colors.bgSurface, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: colors.border }
-  const secondaryButton = { backgroundColor: colors.bgSurface2, borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: colors.border }
   const canInspect = isInspector && (status === 'accepted' || status === 'ongoing')
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.bgVoid }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingTop: 56, paddingHorizontal: 20, paddingBottom: 12 }}>
-        <Pressable onPress={() => navigation.goBack()} style={{ padding: 6 }}>
-          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
-        </Pressable>
-        <Text style={{ color: colors.textPrimary, fontSize: 18, fontWeight: '700' }}>Booking detail</Text>
-      </View>
+    <AppShell>
+      <TopBar onBack={() => navigation.goBack()} title="Booking detail" subtitle={job.vehicles?.plate_number} />
 
-      <ScrollView contentContainerStyle={{ padding: 20, gap: 16 }}>
-        <View style={card}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={{ color: colors.textPrimary, fontSize: 16, fontWeight: '700' }}>
-              {job.vehicles?.make} {job.vehicles?.model}
-            </Text>
+      <ScrollView contentContainerStyle={{ padding: 20, gap: 16, paddingBottom: 40 }}>
+        <Card>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
+            <BrandLogo size={44} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <Text style={{ color: colors.textPrimary, fontSize: 17, fontWeight: '700' }}>{job.vehicles?.make} {job.vehicles?.model}</Text>
+                <PlateChip>{job.vehicles?.plate_number}</PlateChip>
+              </View>
+              <Text style={{ color: colors.textMuted, fontSize: 13, marginTop: 3 }}>{job.profiles?.full_name}</Text>
+              <Text style={{ color: colors.textFaint, fontSize: 12, marginTop: 1 }}>{job.start_date} → {job.end_date}</Text>
+            </View>
             <StatusBadge status={status} />
           </View>
-          <Row label="Plate number" value={job.vehicles?.plate_number} />
-          <Row label="Customer" value={job.profiles?.full_name} />
-          <Row label="Phone" value={job.profiles?.phone ?? '—'} />
-          <Row label="Rental period" value={`${job.start_date} → ${job.end_date}`} />
-          {job.destination_from || job.destination_to ? <Row label="Destination" value={job.destination_from ? `${job.destination_from} → ${job.destination_to || '—'}` : job.destination_to} /> : null}
-          <Row label="Pickup location" value={job.pickup_location ?? '—'} />
-        </View>
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}>
+            <Row label="Phone" value={job.profiles?.phone ?? '—'} />
+            {job.destination_from || job.destination_to ? <Row label="Destination" value={job.destination_from ? `${job.destination_from} → ${job.destination_to || '—'}` : job.destination_to} /> : null}
+            <Row label="Pickup location" value={job.pickup_location ?? '—'} />
+          </View>
+        </Card>
 
-        <View style={card}>
-          <Text style={{ color: colors.textPrimary, fontWeight: '700', marginBottom: 4 }}>Progress</Text>
-          {STEPS.map(([type, label]) => {
-            const inspection = job.inspections?.find((item) => item.type === type)
-            const value = !inspection ? 'Not done' : inspection.verified_at ? 'Done · verified by admin' : 'Done · waiting for admin'
-            const color = !inspection ? colors.textFaint : inspection.verified_at ? colors.success : colors.warning
-            return <Row key={type} label={label} value={value} color={color} />
-          })}
-          {status === 'completed' && (
-            <Row
-              label="Cleaning"
-              value={job.cleaning_done_at ? 'Done' : isCleaner ? 'Assigned to you' : 'Assigned to another staff'}
-              color={job.cleaning_done_at ? colors.success : colors.warning}
-            />
-          )}
-        </View>
+        <Card style={{ gap: 16 }}>
+          <SectionTitle icon="git-commit-outline" title="Progress" />
+          <Stepper steps={progressSteps(job)} />
+          <View style={{ borderTopWidth: 1, borderTopColor: colors.border, paddingTop: 8 }}>
+            {STEPS.map(([type, label]) => {
+              const inspection = inspectionOf(job, type)
+              const value = !inspection ? 'Not done' : inspection.verified_at ? 'Done · verified by admin' : 'Done · waiting for admin'
+              const color = !inspection ? colors.textFaint : inspection.verified_at ? colors.success : colors.warning
+              return <Row key={type} label={label} value={value} color={color} />
+            })}
+            {status === 'completed' && (
+              <Row
+                label="Cleaning"
+                value={job.cleaning_done_at ? 'Done' : isCleaner ? 'Assigned to you' : 'Assigned to another staff'}
+                color={job.cleaning_done_at ? colors.success : colors.warning}
+              />
+            )}
+          </View>
+        </Card>
 
         <View style={{ gap: 10 }}>
           {isInspector && status === 'accepted' && (
-            <Pressable onPress={markOngoing} disabled={busy} style={{ backgroundColor: colors.nebula3, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontWeight: '700' }}>Start rental (mark ongoing)</Text>
-            </Pressable>
+            <Button icon="car-outline" title="Start rental (mark ongoing)" onPress={markOngoing} busy={busy} />
           )}
-
           {canInspect && (
-            <Pressable onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'pre_rental', job })} style={secondaryButton}>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Do pre-rental inspection</Text>
-            </Pressable>
+            <Button variant="ghost" icon="clipboard-outline" title="Do pre-rental inspection" onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'pre_rental', job })} />
           )}
-
           {canInspect && (
-            <Pressable onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'post_rental', job })} style={secondaryButton}>
-              <Text style={{ color: colors.textPrimary, fontWeight: '700' }}>Do post-rental inspection</Text>
-            </Pressable>
+            <Button variant="ghost" icon="clipboard-outline" title="Do post-rental inspection" onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'post_rental', job })} />
           )}
-
           {isInspector && status === 'ongoing' && (
-            <Pressable onPress={markCompleted} disabled={busy} style={{ backgroundColor: colors.success, borderRadius: 12, paddingVertical: 14, alignItems: 'center' }}>
-              <Text style={{ color: 'white', fontWeight: '700' }}>Mark rental completed</Text>
-            </Pressable>
+            <Button icon="checkmark-circle-outline" title="Mark rental completed" onPress={markCompleted} busy={busy} />
           )}
-
           {isCleaner && status === 'completed' && !job.cleaning_done_at && (
-            <Pressable onPress={markCleaned} disabled={busy} style={{ backgroundColor: colors.nebula3, borderRadius: 12, paddingVertical: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 }}>
-              <Ionicons name="sparkles-outline" size={18} color="white" />
-              <Text style={{ color: 'white', fontWeight: '700' }}>Mark cleaning done</Text>
-            </Pressable>
+            <Button icon="sparkles-outline" title="Mark cleaning done" onPress={markCleaned} busy={busy} />
           )}
         </View>
       </ScrollView>
-    </View>
+    </AppShell>
   )
 }
