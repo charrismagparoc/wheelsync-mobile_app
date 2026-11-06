@@ -87,7 +87,23 @@ export default function JobDetailScreen({ route, navigation }) {
     </View>
   )
 
-  const canInspect = isInspector && (status === 'accepted' || status === 'ongoing')
+  // One button at a time, in order: pre-rental inspection → start rental (car released) →
+  // post-rental inspection (car back) → mark completed → cleaning.
+  const inspect = (type) => () => navigation.navigate('Inspection', { bookingId: job.id, type, job })
+  const hasPre = Boolean(inspectionOf(job, 'pre_rental'))
+  const hasPost = Boolean(inspectionOf(job, 'post_rental'))
+  let next = null
+  if (isInspector && status === 'accepted') {
+    next = hasPre
+      ? { icon: 'car-outline', title: 'Start rental (car released)', onPress: markOngoing }
+      : { icon: 'clipboard-outline', title: 'Do pre-rental inspection', onPress: inspect('pre_rental') }
+  } else if (isInspector && status === 'ongoing') {
+    next = hasPost
+      ? { icon: 'checkmark-circle-outline', title: 'Mark rental completed', onPress: markCompleted }
+      : { icon: 'clipboard-outline', title: 'Do post-rental inspection (car returned)', onPress: inspect('post_rental') }
+  } else if (isCleaner && status === 'completed' && !job.cleaning_done_at) {
+    next = { icon: 'sparkles-outline', title: 'Mark cleaning done', onPress: markCleaned }
+  }
 
   return (
     <AppShell>
@@ -134,23 +150,7 @@ export default function JobDetailScreen({ route, navigation }) {
           </View>
         </Card>
 
-        <View style={{ gap: 10 }}>
-          {isInspector && status === 'accepted' && (
-            <Button icon="car-outline" title="Start rental (mark ongoing)" onPress={markOngoing} busy={busy} />
-          )}
-          {canInspect && (
-            <Button variant="ghost" icon="clipboard-outline" title="Do pre-rental inspection" onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'pre_rental', job })} />
-          )}
-          {canInspect && (
-            <Button variant="ghost" icon="clipboard-outline" title="Do post-rental inspection" onPress={() => navigation.navigate('Inspection', { bookingId: job.id, type: 'post_rental', job })} />
-          )}
-          {isInspector && status === 'ongoing' && (
-            <Button icon="checkmark-circle-outline" title="Mark rental completed" onPress={markCompleted} busy={busy} />
-          )}
-          {isCleaner && status === 'completed' && !job.cleaning_done_at && (
-            <Button icon="sparkles-outline" title="Mark cleaning done" onPress={markCleaned} busy={busy} />
-          )}
-        </View>
+        {next && <Button icon={next.icon} title={next.title} onPress={next.onPress} busy={busy} />}
       </ScrollView>
     </AppShell>
   )
